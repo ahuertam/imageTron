@@ -49,6 +49,7 @@ backend/outputs/
 
 | Proveedor | Estado | Velocidad | Registro |
 |---|---|---|---|
+| **Local TRELLIS** | ✅ Gratis (self-hosted) | Depende del hardware | — |
 | **Meshy** | ❌ API de pago | ~60 s | meshy.ai |
 | **Replicate TRELLIS** | ⚠️ Requiere billing | ~25 s | replicate.com/account/api-tokens |
 | **Tripo3D** | ❌ Free wallet no sirve para API | ~30 s | platform.tripo3d.ai |
@@ -58,6 +59,46 @@ backend/outputs/
 > El entorno World Labs (`.spz`) siempre se genera independientemente del proveedor elegido y funciona correctamente.
 
 **Nota sobre Replicate:** los tokens de sesión que genera el dashboard expiran en horas. Para uso en la app crea un token permanente en replicate.com/account/api-tokens.
+
+---
+
+## Local TRELLIS (servidor propio)
+
+Puedes montar TRELLIS en una máquina con GPU y apuntar la app a ella — sin coste por llamada a API.
+
+### Contrato REST esperado
+
+El backend envía `POST /predictions` con la imagen en base64:
+
+```json
+{ "image": "data:image/jpeg;base64,..." }
+```
+
+El servidor puede responder de dos formas:
+
+**Síncrona** (resultado inmediato):
+```json
+{ "output": "http://tu-servidor/model.glb" }
+```
+o
+```json
+{ "glb_url": "http://tu-servidor/model.glb" }
+```
+
+**Asíncrona** (procesamiento en background, polling cada 3 s):
+```json
+// POST /predictions → devuelve id
+{ "id": "abc123", "status": "processing" }
+
+// GET /predictions/abc123
+{ "status": "succeeded", "output": "http://tu-servidor/model.glb" }
+```
+
+El campo `output` puede ser string o array de strings — se elige automáticamente el primer `.glb`.
+
+### Configurar la URL en la UI
+
+Selecciona **Local TRELLIS** en el selector de provider y aparece un campo de texto donde puedes cambiar la URL (por defecto `http://localhost:8000`). La URL se envía al backend en cada petición, no hace falta reiniciar nada.
 
 ---
 
@@ -97,7 +138,7 @@ MESHY_API_KEY=           # meshy.ai → requiere plan de pago
 PORT=3001
 ```
 
-Solo necesitas las keys de los proveedores que vayas a usar. Si una key está vacía, ese proveedor falla con un error claro en la UI.
+Solo necesitas las keys de los proveedores que vayas a usar. Si una key está vacía, ese proveedor falla con un error claro en la UI. **Local TRELLIS no necesita ninguna key.**
 
 ---
 
@@ -142,7 +183,8 @@ imageTron/
 │           ├── tripoApi.ts      ← Tripo3D API + polling 10s
 │           ├── stabilityApi.ts  ← Stability AI (respuesta directa)
 │           ├── replicateApi.ts  ← Replicate TRELLIS + polling 5s
-│           └── meshyApi.ts      ← Meshy API + polling 8s
+│           ├── meshyApi.ts      ← Meshy API + polling 8s
+│           └── localTrellisApi.ts ← TRELLIS self-hosted + polling 3s
 └── frontend/
     └── src/
         ├── App.tsx
@@ -151,7 +193,7 @@ imageTron/
         │   ├── useJobSSE.ts
         │   └── useImageUpload.ts
         ├── components/
-        │   ├── UploadZone.tsx       ← drag-drop + selector de provider
+        │   ├── UploadZone.tsx       ← drag-drop + selector de provider + URL campo local
         │   ├── ProgressPanel.tsx    ← barras de progreso en tiempo real
         │   └── Viewer3D.tsx         ← canvas 3D
         └── three/

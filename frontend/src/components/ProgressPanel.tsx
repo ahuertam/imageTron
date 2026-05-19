@@ -6,6 +6,7 @@ const PROVIDER_LABELS: Record<ModelProvider, string> = {
   stability: 'Stable Fast 3D',
   replicate: 'Replicate TRELLIS',
   meshy: 'Meshy',
+  local: 'Local TRELLIS',
 }
 
 const PROVIDER_SUBTITLES: Record<ModelProvider, string> = {
@@ -14,6 +15,7 @@ const PROVIDER_SUBTITLES: Record<ModelProvider, string> = {
   stability: '3D object model · < 1s',
   replicate: '3D object model · ~25s',
   meshy: '3D object model · ~60s',
+  local: '3D object model · self-hosted',
 }
 
 interface TrackProps {

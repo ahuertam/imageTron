@@ -16,7 +16,7 @@ export function useImageUpload() {
     error: null,
   })
 
-  const upload = useCallback(async (file: File, provider: ModelProvider) => {
+  const upload = useCallback(async (file: File, provider: ModelProvider, localTrellisUrl?: string) => {
     const preview = URL.createObjectURL(file)
     setState({ preview, jobId: null, isUploading: true, error: null })
 
@@ -24,6 +24,9 @@ export function useImageUpload() {
       const form = new FormData()
       form.append('image', file)
       form.append('provider', provider)
+      if (provider === 'local' && localTrellisUrl) {
+        form.append('localTrellisUrl', localTrellisUrl)
+      }
 
       const resp = await fetch('/api/generate', { method: 'POST', body: form })
       if (!resp.ok) throw new Error(`Server error: ${resp.status}`)

@@ -17,6 +17,7 @@ function getAppState(isUploading: boolean, jobId: string | null, done: boolean):
 
 export default function App() {
   const [provider, setProvider] = useState<ModelProvider>('tripo')
+  const [localTrellisUrl, setLocalTrellisUrl] = useState('http://localhost:8000')
   const { preview, jobId, isUploading, error, upload, reset } = useImageUpload()
   const { worldLabs, model, done } = useJobSSE(jobId)
 
@@ -26,7 +27,7 @@ export default function App() {
 
   const handleFile = (file: File, selectedProvider: ModelProvider) => {
     setProvider(selectedProvider)
-    upload(file, selectedProvider)
+    upload(file, selectedProvider, selectedProvider === 'local' ? localTrellisUrl : undefined)
   }
 
   return (
@@ -59,7 +60,13 @@ export default function App() {
       ) : (
         <div className="flex-1 flex items-center justify-center py-8">
           {(appState === 'idle' || appState === 'uploading') && (
-            <UploadZone onFile={handleFile} isUploading={isUploading} preview={preview} />
+            <UploadZone
+              onFile={handleFile}
+              isUploading={isUploading}
+              preview={preview}
+              localTrellisUrl={localTrellisUrl}
+              onLocalTrellisUrlChange={setLocalTrellisUrl}
+            />
           )}
           {appState === 'processing' && (
             <div className="w-full flex flex-col items-center gap-4">

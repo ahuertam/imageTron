@@ -8,6 +8,7 @@ import { startTripoJob } from '../services/tripoApi.js'
 import { startStabilityJob } from '../services/stabilityApi.js'
 import { startReplicateJob } from '../services/replicateApi.js'
 import { startMeshyJob } from '../services/meshyApi.js'
+import { startLocalTrellisJob } from '../services/localTrellisApi.js'
 import type { ModelProvider } from '../types.js'
 
 const upload = multer({
@@ -15,7 +16,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 })
 
-const VALID_PROVIDERS: ModelProvider[] = ['fal', 'tripo', 'stability', 'replicate', 'meshy']
+const VALID_PROVIDERS: ModelProvider[] = ['fal', 'tripo', 'stability', 'replicate', 'meshy', 'local']
 
 const router = Router()
 
@@ -29,6 +30,8 @@ router.post('/', upload.single('image'), (req, res) => {
   const provider: ModelProvider = VALID_PROVIDERS.includes(req.body.provider as ModelProvider)
     ? (req.body.provider as ModelProvider)
     : 'replicate'
+
+  const localTrellisUrl: string = (req.body.localTrellisUrl as string) || 'http://localhost:8000'
 
   const imageHash = hashImage(file.buffer)
   const base64 = file.buffer.toString('base64')
@@ -73,14 +76,15 @@ router.post('/', upload.single('image'), (req, res) => {
     saveMetadata(job, { glb: 'model.glb' })
     broadcast(imageHash)
   } else {
-    const modelRunner =
-      provider === 'fal' ? startFalJob
-      : provider === 'stability' ? startStabilityJob
-      : provider === 'replicate' ? startReplicateJob
-      : provider === 'meshy' ? startMeshyJob
-      : startTripoJob
+    const runModel = provider === 'local'
+      ? () => startLocalTrellisJob(job, localTrellisUrl)
+      : provider === 'fal' ? () => startFalJob(job)
+      : provider === 'stability' ? () => startStabilityJob(job)
+      : provider === 'replicate' ? () => startReplicateJob(job)
+      : provider === 'meshy' ? () => startMeshyJob(job)
+      : () => startTripoJob(job)
 
-    modelRunner(job).catch((err: Error) => {
+    runModel().catch((err: Error) => {
       job.model.status = 'error'
       job.model.error = err.message
       broadcast(job.id)

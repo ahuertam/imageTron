@@ -5,9 +5,12 @@ interface Props {
   onFile: (file: File, provider: ModelProvider) => void
   isUploading: boolean
   preview: string | null
+  localTrellisUrl: string
+  onLocalTrellisUrlChange: (url: string) => void
 }
 
 const PROVIDERS: { id: ModelProvider; label: string; badge: string; desc: string }[] = [
+  { id: 'local', label: 'Local TRELLIS', badge: 'Free', desc: 'Self-hosted · GLB' },
   { id: 'meshy', label: 'Meshy', badge: '200 free/month', desc: '~60s · GLB' },
   { id: 'replicate', label: 'Replicate TRELLIS', badge: 'Pay-per-use', desc: '~25s · GLB' },
   { id: 'tripo', label: 'Tripo3D', badge: 'API credits', desc: '~30s · GLB' },
@@ -15,7 +18,7 @@ const PROVIDERS: { id: ModelProvider; label: string; badge: string; desc: string
   { id: 'fal', label: 'FAL Hunyuan3D', badge: 'Paid', desc: '~2 min · GLB' },
 ]
 
-export function UploadZone({ onFile, isUploading, preview }: Props) {
+export function UploadZone({ onFile, isUploading, preview, localTrellisUrl, onLocalTrellisUrlChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [provider, setProvider] = useState<ModelProvider>('meshy')
@@ -104,25 +107,40 @@ export function UploadZone({ onFile, isUploading, preview }: Props) {
         <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">3D model provider</p>
         <div className="flex flex-col gap-2">
           {PROVIDERS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setProvider(p.id)}
-              className={`
-                flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all
-                ${provider === p.id
-                  ? 'border-violet-500 bg-violet-950/40 text-white'
-                  : 'border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-600'}
-              `}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full border-2 ${provider === p.id ? 'border-violet-400 bg-violet-400' : 'border-gray-600'}`} />
-                <span className="text-sm font-medium">{p.label}</span>
-                <span className="text-xs text-gray-500">{p.desc}</span>
-              </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${p.badge === 'Paid' ? 'bg-gray-800 text-gray-500' : 'bg-green-900/50 text-green-400'}`}>
-                {p.badge}
-              </span>
-            </button>
+            <div key={p.id} className="flex flex-col gap-1">
+              <button
+                onClick={() => setProvider(p.id)}
+                className={`
+                  flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all
+                  ${provider === p.id
+                    ? 'border-violet-500 bg-violet-950/40 text-white'
+                    : 'border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-600'}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full border-2 ${provider === p.id ? 'border-violet-400 bg-violet-400' : 'border-gray-600'}`} />
+                  <span className="text-sm font-medium">{p.label}</span>
+                  <span className="text-xs text-gray-500">{p.desc}</span>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  p.badge === 'Paid' ? 'bg-gray-800 text-gray-500'
+                  : p.badge === 'Free' ? 'bg-green-900/50 text-green-400'
+                  : 'bg-blue-900/50 text-blue-400'
+                }`}>
+                  {p.badge}
+                </span>
+              </button>
+              {p.id === 'local' && provider === 'local' && (
+                <input
+                  type="text"
+                  value={localTrellisUrl}
+                  onChange={(e) => onLocalTrellisUrlChange(e.target.value)}
+                  placeholder="http://localhost:8000"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+            </div>
           ))}
         </div>
       </div>
