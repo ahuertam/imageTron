@@ -1,4 +1,13 @@
-# ImageTron
+<table>
+  <tr>
+    <td>
+      <img src="public/terminator2.png" alt="ImageTron logo" width="96" />
+    </td>
+    <td>
+      <h1>ImageTron</h1>
+    </td>
+  </tr>
+</table>
 
 Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un entorno navegable como Gaussian Splat (`.spz`) generado por World Labs, más un modelo 3D del objeto (`.glb`) generado por el proveedor que elijas.
 
