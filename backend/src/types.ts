@@ -1,6 +1,6 @@
 export type JobStatus = 'pending' | 'processing' | 'done' | 'error'
 
-export type ModelProvider = 'fal' | 'tripo' | 'stability' | 'replicate'
+export type ModelProvider = 'fal' | 'tripo' | 'stability' | 'replicate' | 'meshy'
 
 export interface SubJobState {
   status: JobStatus

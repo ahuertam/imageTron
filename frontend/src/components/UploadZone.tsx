@@ -8,7 +8,8 @@ interface Props {
 }
 
 const PROVIDERS: { id: ModelProvider; label: string; badge: string; desc: string }[] = [
-  { id: 'replicate', label: 'Replicate TRELLIS', badge: 'Free credits', desc: '~25s · GLB' },
+  { id: 'meshy', label: 'Meshy', badge: '200 free/month', desc: '~60s · GLB' },
+  { id: 'replicate', label: 'Replicate TRELLIS', badge: 'Pay-per-use', desc: '~25s · GLB' },
   { id: 'tripo', label: 'Tripo3D', badge: 'API credits', desc: '~30s · GLB' },
   { id: 'stability', label: 'Stable Fast 3D', badge: 'Paid', desc: '< 1s · GLB' },
   { id: 'fal', label: 'FAL Hunyuan3D', badge: 'Paid', desc: '~2 min · GLB' },
@@ -17,7 +18,7 @@ const PROVIDERS: { id: ModelProvider; label: string; badge: string; desc: string
 export function UploadZone({ onFile, isUploading, preview }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [provider, setProvider] = useState<ModelProvider>('replicate')
+  const [provider, setProvider] = useState<ModelProvider>('meshy')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
 
   const handleFile = useCallback((file: File) => {

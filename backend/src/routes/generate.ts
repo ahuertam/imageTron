@@ -7,6 +7,7 @@ import { startFalJob } from '../services/falApi.js'
 import { startTripoJob } from '../services/tripoApi.js'
 import { startStabilityJob } from '../services/stabilityApi.js'
 import { startReplicateJob } from '../services/replicateApi.js'
+import { startMeshyJob } from '../services/meshyApi.js'
 import type { ModelProvider } from '../types.js'
 
 const upload = multer({
@@ -14,7 +15,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 })
 
-const VALID_PROVIDERS: ModelProvider[] = ['fal', 'tripo', 'stability', 'replicate']
+const VALID_PROVIDERS: ModelProvider[] = ['fal', 'tripo', 'stability', 'replicate', 'meshy']
 
 const router = Router()
 
@@ -76,6 +77,7 @@ router.post('/', upload.single('image'), (req, res) => {
       provider === 'fal' ? startFalJob
       : provider === 'stability' ? startStabilityJob
       : provider === 'replicate' ? startReplicateJob
+      : provider === 'meshy' ? startMeshyJob
       : startTripoJob
 
     modelRunner(job).catch((err: Error) => {

@@ -3,8 +3,7 @@ import { saveAsset, saveMetadata } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
 import type { Job } from '../types.js'
 
-// Using latest version tag — Replicate resolves it automatically
-const MODEL = 'firtoz/trellis'
+// Pinned to latest version — update if Replicate releases a new one
 const API_BASE = 'https://api.replicate.com/v1'
 const POLL_INTERVAL = 5_000
 
@@ -32,20 +31,22 @@ export async function startReplicateJob(job: Job): Promise<void> {
   job.model.progress = 10
   broadcast(job.id)
 
-  const submitResp = await fetch(`${API_BASE}/models/${MODEL}/predictions`, {
+  // TRELLIS requires explicit version + uses "images" array (not "image")
+  const submitResp = await fetch(`${API_BASE}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      Prefer: 'wait=5',
+      Prefer: 'wait=10',
     },
     body: JSON.stringify({
+      version: TRELLIS_VERSION,
       input: {
-        image: dataUri,
+        images: [dataUri],
         texture_size: 1024,
         mesh_simplify: 0.95,
-        ss_sampling_steps: 12,
-        slat_sampling_steps: 12,
+        generate_model: true,
+        generate_color: true,
       },
     }),
   })
@@ -68,7 +69,6 @@ export async function startReplicateJob(job: Job): Promise<void> {
   job.model.progress = 15
   broadcast(job.id)
 
-  // If already done (Prefer: wait resolved it)
   if (prediction.status === 'succeeded') {
     await finalize(job, prediction.output!)
     return
@@ -114,7 +114,6 @@ export async function startReplicateJob(job: Job): Promise<void> {
 }
 
 async function finalize(job: Job, output: string[]): Promise<void> {
-  // TRELLIS returns an array; first element is the .glb
   const glbUrl = output.find((u) => u.endsWith('.glb')) ?? output[0]
   if (!glbUrl) throw new Error('No GLB in Replicate output')
 
