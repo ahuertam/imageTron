@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+backend/.env
+backend/.env.*
+!backend/.env.example
+*.local
+backend/outputs/

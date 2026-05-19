@@ -1,0 +1,31 @@
+export type JobStatus = 'pending' | 'processing' | 'done' | 'error'
+
+export type ModelProvider = 'fal' | 'tripo' | 'stability' | 'replicate'
+
+export interface SubJobState {
+  status: JobStatus
+  progress: number
+  message: string
+  assetUrl?: string
+  error?: string
+  externalOperationId?: string
+}
+
+export interface Job {
+  id: string
+  createdAt: number
+  imageBase64: string
+  imageMimeType: string
+  provider: ModelProvider
+  worldLabs: SubJobState
+  model: SubJobState
+}
+
+export type SSEEventType = 'update' | 'done'
+
+export interface SSEEvent {
+  type: SSEEventType
+  provider: ModelProvider
+  worldLabs: SubJobState
+  model: SubJobState
+}
