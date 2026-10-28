@@ -1,7 +1,7 @@
 <table>
   <tr>
     <td>
-      <img src="public/terminator2.png" alt="ImageTron logo" width="96" />
+      <img src="frontend/public/terminator2.png" alt="ImageTron logo" width="96" />
     </td>
     <td>
       <h1>ImageTron</h1>
