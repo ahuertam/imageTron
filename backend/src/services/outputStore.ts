@@ -3,20 +3,23 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import type { Job } from '../types.js'
 
-const OUTPUTS_DIR = path.resolve('outputs')
+// ponytail: OUTPUTS_DIR se resuelve en cada llamada (no al importar) para que los tests
+// puedan aislar la caché en un tmpdir. Upgrading path: mover a config por entorno si
+// aparecen más de un consumidor con roots distintos.
+const outputsDir = (): string => process.env.OUTPUTS_DIR ?? path.resolve('outputs')
 
 export function hashImage(buffer: Buffer): string {
   return crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 16)
 }
 
 export function ensureOutputDir(imageHash: string): string {
-  const dir = path.join(OUTPUTS_DIR, imageHash)
+  const dir = path.join(outputsDir(), imageHash)
   fs.mkdirSync(dir, { recursive: true })
   return dir
 }
 
 export function getCachedAsset(imageHash: string, filename: string): Buffer | null {
-  const filePath = path.join(OUTPUTS_DIR, imageHash, filename)
+  const filePath = path.join(outputsDir(), imageHash, filename)
   if (fs.existsSync(filePath)) return fs.readFileSync(filePath)
   return null
 }
