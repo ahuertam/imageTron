@@ -1,4 +1,4 @@
-# ImageTron — contexto para Claude
+# ImageTron — Arquitectura
 
 ## Qué hace este proyecto
 

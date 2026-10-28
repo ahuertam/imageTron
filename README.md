@@ -16,7 +16,7 @@ Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un e
 [![CI](https://github.com/ahuertam/imageTron/actions/workflows/ci.yml/badge.svg)](https://github.com/ahuertam/imageTron/actions/workflows/ci.yml)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](./LICENSE)
 
-> 💡 **¿Cómo funciona por dentro?** En [`FAQ.md`](./FAQ.md) explico paso a paso cómo monta la escena React Three Fiber, el flujo de SSE, el sistema de caché por hash y las decisiones de diseño.
+> 💡 **¿Cómo funciona por dentro?** En [`FAQ.md`](./FAQ.md) explico paso a paso cómo monta la escena React Three Fiber, el flujo de SSE, el sistema de caché por hash y las decisiones de diseño. El detalle técnico (tipos, endpoints, particularidades de SparkRenderer) está en [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## ▶️ Probarlo
 
@@ -53,7 +53,7 @@ Cada imagen genera un hash SHA-256 (16 chars) que se usa como ID del job y nombr
 ```
 backend/outputs/
 └── acf548744b89fc02/
-    ├── source.jpg         ← imagen original
+    ├── source.jpg         ← imagen original (extensión según el mimeType)
     ├── environment.spz    ← entorno World Labs (se reutiliza si ya existe)
     ├── model.glb          ← modelo 3D (se reutiliza si ya existe)
     └── metadata.json      ← fecha, provider, nombres de archivos
@@ -183,10 +183,14 @@ Solo necesitas las keys de los proveedores que vayas a usar. Si una key está va
 ```
 imageTron/
 ├── start.sh                     ← instala todo y arranca ambos servidores
+├── docs/
+│   └── ARCHITECTURE.md          ← arquitectura, tipos, flujo SSE, particularidades de Spark
 ├── backend/
 │   ├── .env                     ← tus API keys (no en git)
 │   ├── .env.example             ← plantilla
 │   ├── outputs/                 ← assets generados, organizados por hash de imagen (no en git)
+│   ├── test/
+│   │   └── outputStore.test.ts  ← tests de hash y caché (node --test)
 │   └── src/
 │       ├── index.ts
 │       ├── types.ts
@@ -206,6 +210,8 @@ imageTron/
 │           ├── meshyApi.ts      ← Meshy API + polling 8s
 │           └── localTrellisApi.ts ← TRELLIS self-hosted + polling 3s
 └── frontend/
+    ├── public/
+    │   └── terminator2.png      ← logo (servido por Vite desde frontend/public)
     └── src/
         ├── App.tsx
         ├── types.ts
