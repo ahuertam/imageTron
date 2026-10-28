@@ -4,6 +4,8 @@ import { resizeIfNeeded } from './imageResize.js'
 import type { Job } from '../types.js'
 
 // Pinned to latest version — update if Replicate releases a new one
+// https://replicate.com/firtoz/trellis/versions/e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c
+const TRELLIS_VERSION = 'e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c'
 const API_BASE = 'https://api.replicate.com/v1'
 const POLL_INTERVAL = 5_000
 
