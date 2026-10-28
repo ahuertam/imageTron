@@ -35,11 +35,15 @@ function isSettled(s: SubJobState): boolean {
   return s.status === 'done' || s.status === 'error'
 }
 
+export function isJobSettled(job: Job): boolean {
+  return isSettled(job.worldLabs) && isSettled(job.model)
+}
+
 export function broadcast(jobId: string): void {
   const job = jobs.get(jobId)
   if (!job) return
 
-  const bothSettled = isSettled(job.worldLabs) && isSettled(job.model)
+  const bothSettled = isJobSettled(job)
   const event: SSEEvent = {
     type: bothSettled ? 'done' : 'update',
     provider: job.provider,

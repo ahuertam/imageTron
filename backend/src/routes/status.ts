@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getJob, addSSEClient } from '../services/jobStore.js'
+import { getJob, addSSEClient, isJobSettled } from '../services/jobStore.js'
 import type { SSEEvent } from '../types.js'
 
 const router = Router()
@@ -17,9 +17,11 @@ router.get('/:jobId', (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no')
   res.flushHeaders()
 
-  // Send current state immediately so client syncs on late connect
+  // Send current state immediately so client syncs on late connect.
+  // Si el job ya está resuelto tiene que llegar como 'done': el cliente
+  // sólo cambia a la escena 3D cuando recibe ese tipo de evento.
   const current: SSEEvent = {
-    type: 'update',
+    type: isJobSettled(job) ? 'done' : 'update',
     provider: job.provider,
     worldLabs: job.worldLabs,
     model: job.model,
