@@ -20,7 +20,11 @@ Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un e
 
 ## ▶️ Probarlo
 
-No hay demo hospedada: cada proveedor de modelos 3D necesita sus propias credenciales. Para levantarlo en local:
+![Demo de ImageTron: una imagen se convierte en un mundo 3D](docs/demo.gif)
+
+<sub>El flujo real de la app: la imagen entra por el drop zone, el backend lanza los dos jobs en paralelo y el progreso llega por SSE. El entorno 3D es un Gaussian Splat generado por World Labs.</sub>
+
+No hay demo hospedada — cada proveedor de modelos 3D necesita sus propias credenciales. Para levantarlo en local:
 
 ```bash
 ./start.sh
@@ -30,6 +34,10 @@ No hay demo hospedada: cada proveedor de modelos 3D necesita sus propias credenc
 - Backend: http://localhost:3001
 
 Con **Local TRELLIS** self-hosted no hace falta ninguna API key.
+
+La escena 3D que genera World Labs a partir de la imagen del GIF:
+
+![Escena 3D: entorno Gaussian Splat generado por World Labs](docs/scene-3d.png)
 
 ---
 
@@ -184,7 +192,9 @@ Solo necesitas las keys de los proveedores que vayas a usar. Si una key está va
 imageTron/
 ├── start.sh                     ← instala todo y arranca ambos servidores
 ├── docs/
-│   └── ARCHITECTURE.md          ← arquitectura, tipos, flujo SSE, particularidades de Spark
+│   ├── ARCHITECTURE.md          ← arquitectura, tipos, flujo SSE, particularidades de Spark
+│   ├── demo.gif                 ← demo del flujo (imagen → mundo 3D)
+│   └── scene-3d.png             ← captura de la escena 3D generada
 ├── backend/
 │   ├── .env                     ← tus API keys (no en git)
 │   ├── .env.example             ← plantilla
