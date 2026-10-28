@@ -11,6 +11,25 @@
 
 Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un entorno navegable como Gaussian Splat (`.spz`) generado por World Labs, más un modelo 3D del objeto (`.glb`) generado por el proveedor que elijas.
 
+![Stack](https://img.shields.io/badge/backend-Express%205%20%2B%20TS-blueviolet)
+![Stack](https://img.shields.io/badge/frontend-React%2019%20%2B%20R3F%20%2B%20Tailwind-61dafb)
+[![Licencia](https://img.shields.io/badge/licencia-MIT-green)](./LICENSE)
+
+> 💡 **¿Cómo funciona por dentro?** En [`FAQ.md`](./FAQ.md) explico paso a paso cómo monta la escena React Three Fiber, el flujo de SSE, el sistema de caché por hash y las decisiones de diseño.
+
+## ▶️ Probarlo
+
+No hay demo hospedada: cada proveedor de modelos 3D necesita sus propias credenciales. Para levantarlo en local:
+
+```bash
+./start.sh
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3001
+
+Con **Local TRELLIS** self-hosted no hace falta ninguna API key.
+
 ---
 
 ## Cómo funciona
@@ -200,3 +219,15 @@ imageTron/
             ├── SplatEnvironment.tsx ← Gaussian splat (Y-flip corregido)
             └── GlbObject.tsx        ← modelo GLB auto-centrado
 ```
+
+
+---
+
+## 📄 Licencia
+
+MIT. Ver [`LICENSE`](./LICENSE).
+
+## 👤 Autor
+
+**Alejandro Huerta** — Senior Frontend / Tools Engineer. Madrid (remoto).
+[github.com/ahuertam](https://github.com/ahuertam) · [linkedin.com/in/alejandrohuertaengineer](https://linkedin.com/in/alejandrohuertaengineer)
