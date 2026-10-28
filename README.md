@@ -13,6 +13,7 @@ Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un e
 
 ![Stack](https://img.shields.io/badge/backend-Express%205%20%2B%20TS-blueviolet)
 ![Stack](https://img.shields.io/badge/frontend-React%2019%20%2B%20R3F%20%2B%20Tailwind-61dafb)
+[![CI](https://github.com/ahuertam/imageTron/actions/workflows/ci.yml/badge.svg)](https://github.com/ahuertam/imageTron/actions/workflows/ci.yml)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green)](./LICENSE)
 
 > 💡 **¿Cómo funciona por dentro?** En [`FAQ.md`](./FAQ.md) explico paso a paso cómo monta la escena React Three Fiber, el flujo de SSE, el sistema de caché por hash y las decisiones de diseño.
