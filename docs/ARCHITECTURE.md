@@ -26,14 +26,14 @@ Ambos jobs corren en paralelo. En cuanto cada asset está listo aparece en la es
 
 ```
 POST /api/generate (FormData: image, provider, localTrellisUrl?)
-  → devuelve { jobId }          // jobId = SHA-256 hash (16 chars) de la imagen
+  → devuelve { jobId }          // jobId = <hash de imagen>-<provider>
 
 GET /api/status/:jobId          // SSE stream con SubJobState para worldLabs y model
 GET /api/assets/:jobId/spz      // proxy del .spz desde buffer en memoria
 GET /api/assets/:jobId/glb      // proxy del .glb desde buffer en memoria
 ```
 
-El jobId es el hash de la imagen — misma imagen = mismo jobId = caché hit automático.
+El jobId es el hash de la imagen **más el provider**: la misma imagen con otro provider es otro job (comparte el `.spz` en disco pero regenera su `.glb`). Misma imagen + mismo provider = mismo jobId = caché hit automático.
 
 ---
 
@@ -41,15 +41,33 @@ El jobId es el hash de la imagen — misma imagen = mismo jobId = caché hit aut
 
 ```
 backend/outputs/<imageHash>/
-  source.jpeg       ← imagen original (la extensión sale del mimeType)
-  environment.spz   ← se reutiliza siempre que exista (independiente del provider)
-  model.glb         ← se reutiliza solo si el provider no ha cambiado
-  metadata.json     ← fecha, provider, nombres de ficheros
+  source.jpeg         ← imagen original (la extensión sale del mimeType)
+  environment.spz     ← se reutiliza siempre que exista (independiente del provider)
+  model.<provider>.glb← un .glb por provider (no se pisan entre sí)
+  metadata.json       ← assets y providers que han generado cada asset
 ```
 
 La raíz por defecto es `backend/outputs/` y se puede cambiar con la env `OUTPUTS_DIR`.
 
 Lógica en `generate.ts`: comprueba caché antes de llamar a cualquier API externa.
+
+---
+
+## Límites y protección de la cuota
+
+Cada job llama a World Labs y a un proveedor de pago, así que hay tres guardas:
+
+| Guarda | Dónde | Qué evita |
+|---|---|---|
+| Rate limit por IP | `services/rateLimit.ts` | que una racha de peticiones vacíe la cuota (429) |
+| Tope de jobs activos | `services/jobStore.ts` (`countActiveJobs`) | demasiadas generaciones simultáneas (503) y que la RAM crezca |
+| TTL + topes de tamaño | `services/jobStore.ts` | que `jobs`, `assetBuffers` y `sseClients` crezcan sin límite (los `.spz` pesan ~7 MB) |
+| Validación de URL | `services/safeUrl.ts` | SSRF: la URL del TRELLIS local y la del `.glb` se validan (esquema + rangos link-local/metadata) y cada redirección se revalida |
+| Límite de píxeles | `services/imageResize.ts` | que una imagen de 20 MB pida GB de RAM al decodificarse (`limitInputPixels`) |
+
+La API **no tiene autenticación propia**: una SPA de navegador no puede guardar un secreto, así que un token en el bundle no protegería nada. Para exponerla a internet hay que ponerla detrás de algo que autentique (Cloudflare Access, proxy con Basic Auth…).
+
+El body de los errores que devuelve un proveedor se acorta antes de mandarse al cliente, para no filtrar cabeceras ni credenciales del proveedor en la respuesta.
 
 ---
 

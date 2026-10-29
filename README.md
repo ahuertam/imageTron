@@ -56,19 +56,20 @@ La escena 3D que genera World Labs a partir de la imagen del GIF:
 
 ## Caché por hash de imagen
 
-Cada imagen genera un hash SHA-256 (16 chars) que se usa como ID del job y nombre de carpeta:
+Cada imagen genera un hash SHA-256 (16 chars) que es el nombre de la carpeta de caché. El ID del job añade el provider (`<hash>-<provider>`), porque la misma imagen con otro provider es otro job:
 
 ```
 backend/outputs/
 └── acf548744b89fc02/
-    ├── source.jpeg        ← imagen original (la extensión sale del mimeType)
-    ├── environment.spz    ← entorno World Labs (se reutiliza si ya existe)
-    ├── model.glb          ← modelo 3D (se reutiliza si ya existe)
-    └── metadata.json      ← fecha, provider, nombres de archivos
+    ├── source.jpeg            ← imagen original (la extensión sale del mimeType)
+    ├── environment.spz        ← entorno World Labs (se comparte entre providers)
+    ├── model.meshy.glb        ← modelo 3D de Meshy (uno por provider)
+    ├── model.tripo.glb        ← modelo 3D de Tripo
+    └── metadata.json          ← assets y providers que han generado cada asset
 ```
 
 - **Misma imagen + mismo provider** → ambos assets desde caché, instantáneo
-- **Misma imagen + distinto provider** → reutiliza el `.spz`, regenera solo el `.glb`
+- **Misma imagen + distinto provider** → reutiliza el `.spz`, regenera solo el `.glb` de ese provider
 - **Imagen nueva** → genera todo y lo guarda
 
 ---
@@ -168,15 +169,28 @@ PORT=3001
 
 Solo necesitas las keys de los proveedores que vayas a usar. Si una key está vacía, ese proveedor falla con un error claro en la UI. **Local TRELLIS no necesita key para el modelo 3D, pero World Labs siempre necesita la suya para el entorno.**
 
+### Límites (para que nadie te vacíe la cuota)
+
+Cada generación llama a World Labs y a un proveedor de pago, así que el backend se protege solo:
+
+| Env | Por defecto | Qué hace |
+|---|---|---|
+| `RATE_LIMIT_MAX` | `10` | subidas por IP cada 10 min (429 al superarlas) |
+| `MAX_ACTIVE_JOBS` | `4` | generaciones simultáneas (503 al superarlas) |
+| `OUTPUTS_DIR` | `backend/outputs` | raíz de la caché en disco |
+
+> **Si lo expones a internet, ponlo detrás de algo que autentique** (Cloudflare Access, un proxy con Basic Auth…). La API no tiene autenticación propia: una SPA de navegador no puede guardar un secreto, así que el límite por IP es lo que protege tu cuota. Con un proxy delante, el problema desaparece.
+
 ---
 
 ## Stack técnico
 
 **Backend** — Express 5 + TypeScript
-- `POST /api/generate` — recibe imagen, calcula hash, comprueba caché, lanza jobs en paralelo
+- `POST /api/generate` — recibe imagen, calcula hash, comprueba caché, lanza jobs en paralelo (con rate limit por IP y tope de jobs simultáneos)
 - `GET /api/status/:jobId` — Server-Sent Events con progreso en tiempo real
 - `GET /api/assets/:jobId/spz|glb` — sirve assets desde buffer en memoria (sin CORS)
 - Las imágenes se ajustan a un máximo de 1024×1024 px (conservando la relación de aspecto) sólo si superan 1 MP; por debajo de ese tamaño se envían sin modificar (usando `sharp`). La API de World Labs recibe la imagen original sin redimensionar
+- La URL del servidor TRELLIS local se valida antes de pedirla (esquema y rangos link-local bloqueados, y cada redirección se revalida) para que el backend no se convierta en un proxy hacia la red interna
 
 **Frontend** — Vite + React 19 + TypeScript + Tailwind CSS
 - `useJobSSE` — hook que abre un `EventSource` y actualiza el estado reactivamente
@@ -201,7 +215,9 @@ imageTron/
 │   ├── outputs/                 ← assets generados, organizados por hash de imagen (no en git)
 │   ├── test/
 │   │   ├── outputStore.test.ts  ← tests de hash y caché (node --test)
-│   │   └── jobStore.test.ts     ← tests del estado de job y del evento SSE
+│   │   ├── jobStore.test.ts     ← tests del estado de job y del evento SSE
+│   │   ├── rateLimit.test.ts    ← tests del límite por IP
+│   │   └── safeUrl.test.ts      ← tests de la validación de URL (SSRF)
 │   └── src/
 │       ├── index.ts
 │       ├── types.ts
@@ -210,8 +226,10 @@ imageTron/
 │       │   ├── status.ts        ← GET  /api/status/:jobId (SSE)
 │       │   └── assets.ts        ← GET  /api/assets/:jobId/:type
 │       └── services/
-│           ├── jobStore.ts      ← estado en memoria + broadcast SSE
-│           ├── outputStore.ts   ← caché en disco (hash → carpeta)
+│           ├── jobStore.ts      ← estado en memoria + broadcast SSE (con TTL y topes)
+│           ├── outputStore.ts   ← caché en disco (hash → carpeta, .glb por provider)
+│           ├── rateLimit.ts     ← límite de subidas por IP
+│           ├── safeUrl.ts       ← validación de URL (anti-SSRF)
 │           ├── imageResize.ts   ← ajusta a máx. 1024×1024 (fit inside) si supera 1 MP
 │           ├── worldLabs.ts     ← World Labs API + polling 15s
 │           ├── falApi.ts        ← FAL queue API + polling 10s
