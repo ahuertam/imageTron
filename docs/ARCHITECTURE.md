@@ -41,11 +41,13 @@ El jobId es el hash de la imagen — misma imagen = mismo jobId = caché hit aut
 
 ```
 backend/outputs/<imageHash>/
-  source.jpg        ← imagen original
+  source.jpeg       ← imagen original (la extensión sale del mimeType)
   environment.spz   ← se reutiliza siempre que exista (independiente del provider)
   model.glb         ← se reutiliza solo si el provider no ha cambiado
   metadata.json     ← fecha, provider, nombres de ficheros
 ```
+
+La raíz por defecto es `backend/outputs/` y se puede cambiar con la env `OUTPUTS_DIR`.
 
 Lógica en `generate.ts`: comprueba caché antes de llamar a cualquier API externa.
 
@@ -131,7 +133,11 @@ La URL del servidor se envía en cada FormData como `localTrellisUrl` (default `
 - `Map<jobId, Set<Response>>` — clientes SSE conectados
 - `Map<string, Buffer>` (`assetBuffers`) — buffers de assets en memoria
 
-`broadcast(jobId)` serializa el Job a SSEEvent y lo envía a todos los clientes. Cierra la conexión cuando ambos sub-jobs están en estado `done` o `error`.
+`sseEventFor(job)` es el único sitio que construye el SSEEvent (`type: 'done'` cuando los dos sub-jobs están resueltos, `update` si no).
+
+`broadcast(jobId)` lo envía a todos los clientes y cierra la conexión cuando ambos sub-jobs están en estado `done` o `error`.
+
+`GET /api/status/:jobId` manda el estado actual nada más conectar, para que un cliente que llega tarde se sincronice. Si el job ya está resuelto ese evento llega como `done`, la respuesta se cierra y el cliente no se registra (no va a recibir nada más).
 
 ---
 

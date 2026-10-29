@@ -22,7 +22,7 @@ Sube una imagen y conviértela automáticamente en un mundo 3D interactivo: un e
 
 ![Demo de ImageTron: una imagen se convierte en un mundo 3D](docs/demo.gif)
 
-<sub>El flujo real de la app: la imagen entra por el drop zone, el backend lanza los dos jobs en paralelo y el progreso llega por SSE. El entorno 3D es un Gaussian Splat generado por World Labs.</sub>
+<sub>El flujo real de la app: la imagen entra por el drop zone, el backend lanza los dos jobs en paralelo y el progreso llega por SSE. El entorno 3D es un Gaussian Splat generado por World Labs. El segundo job —el modelo del objeto (`.glb`)— necesita la API key de su proveedor, por eso en el GIF aparece en rojo.</sub>
 
 No hay demo hospedada — cada proveedor de modelos 3D necesita sus propias credenciales. Para levantarlo en local:
 
@@ -33,11 +33,11 @@ No hay demo hospedada — cada proveedor de modelos 3D necesita sus propias cred
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3001
 
-Con **Local TRELLIS** self-hosted no hace falta ninguna API key.
+Con **Local TRELLIS** self-hosted no hace falta API key para el modelo 3D, pero el entorno (`.spz`) lo genera siempre World Labs, así que sí necesitas `WORLD_LABS_API_KEY`.
 
 La escena 3D que genera World Labs a partir de la imagen del GIF:
 
-![Escena 3D: entorno Gaussian Splat generado por World Labs](docs/scene-3d.png)
+![Escena 3D: entorno Gaussian Splat generado por World Labs](docs/scene-3d.jpg)
 
 ---
 
@@ -61,7 +61,7 @@ Cada imagen genera un hash SHA-256 (16 chars) que se usa como ID del job y nombr
 ```
 backend/outputs/
 └── acf548744b89fc02/
-    ├── source.jpg         ← imagen original (extensión según el mimeType)
+    ├── source.jpeg        ← imagen original (la extensión sale del mimeType)
     ├── environment.spz    ← entorno World Labs (se reutiliza si ya existe)
     ├── model.glb          ← modelo 3D (se reutiliza si ya existe)
     └── metadata.json      ← fecha, provider, nombres de archivos
@@ -132,7 +132,7 @@ Selecciona **Local TRELLIS** en el selector de provider y aparece un campo de te
 
 ## Requisitos
 
-- Node.js 18+
+- Node.js 18.17+ para la app (`sharp` no baja de ahí) y **20.6+** para `npm test` (`node --import`). Recomendado: **Node 22**, la versión que usa CI
 - API keys en `backend/.env`
 
 ---
@@ -166,7 +166,7 @@ MESHY_API_KEY=           # meshy.ai → requiere plan de pago
 PORT=3001
 ```
 
-Solo necesitas las keys de los proveedores que vayas a usar. Si una key está vacía, ese proveedor falla con un error claro en la UI. **Local TRELLIS no necesita ninguna key.**
+Solo necesitas las keys de los proveedores que vayas a usar. Si una key está vacía, ese proveedor falla con un error claro en la UI. **Local TRELLIS no necesita key para el modelo 3D, pero World Labs siempre necesita la suya para el entorno.**
 
 ---
 
@@ -176,7 +176,7 @@ Solo necesitas las keys de los proveedores que vayas a usar. Si una key está va
 - `POST /api/generate` — recibe imagen, calcula hash, comprueba caché, lanza jobs en paralelo
 - `GET /api/status/:jobId` — Server-Sent Events con progreso en tiempo real
 - `GET /api/assets/:jobId/spz|glb` — sirve assets desde buffer en memoria (sin CORS)
-- Las imágenes se redimensionan automáticamente a 1024×1024 antes de enviarlas a las APIs (usando `sharp`)
+- Las imágenes se ajustan a un máximo de 1024×1024 px (conservando la relación de aspecto) sólo si superan 1 MP; por debajo de ese tamaño se envían sin modificar (usando `sharp`). La API de World Labs recibe la imagen original sin redimensionar
 
 **Frontend** — Vite + React 19 + TypeScript + Tailwind CSS
 - `useJobSSE` — hook que abre un `EventSource` y actualiza el estado reactivamente
@@ -194,13 +194,14 @@ imageTron/
 ├── docs/
 │   ├── ARCHITECTURE.md          ← arquitectura, tipos, flujo SSE, particularidades de Spark
 │   ├── demo.gif                 ← demo del flujo (imagen → mundo 3D)
-│   └── scene-3d.png             ← captura de la escena 3D generada
+│   └── scene-3d.jpg             ← captura de la escena 3D generada
 ├── backend/
 │   ├── .env                     ← tus API keys (no en git)
 │   ├── .env.example             ← plantilla
 │   ├── outputs/                 ← assets generados, organizados por hash de imagen (no en git)
 │   ├── test/
-│   │   └── outputStore.test.ts  ← tests de hash y caché (node --test)
+│   │   ├── outputStore.test.ts  ← tests de hash y caché (node --test)
+│   │   └── jobStore.test.ts     ← tests del estado de job y del evento SSE
 │   └── src/
 │       ├── index.ts
 │       ├── types.ts
@@ -211,7 +212,7 @@ imageTron/
 │       └── services/
 │           ├── jobStore.ts      ← estado en memoria + broadcast SSE
 │           ├── outputStore.ts   ← caché en disco (hash → carpeta)
-│           ├── imageResize.ts   ← redimensiona a 1024×1024 con sharp
+│           ├── imageResize.ts   ← ajusta a máx. 1024×1024 (fit inside) si supera 1 MP
 │           ├── worldLabs.ts     ← World Labs API + polling 15s
 │           ├── falApi.ts        ← FAL queue API + polling 10s
 │           ├── tripoApi.ts      ← Tripo3D API + polling 10s
