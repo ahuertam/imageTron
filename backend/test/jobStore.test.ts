@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { createJob, getJob, broadcast, isJobSettled, addSSEClient, sseEventFor } from '../src/services/jobStore.js'
+import { createJob, getJob, broadcast, isJobSettled, addSSEClient, sseEventFor, countActiveJobs, setAssetBuffer, getAssetBuffer } from '../src/services/jobStore.js'
 import type { ServerResponse } from 'node:http'
 
 /** ServerResponse mínimo que captura lo que se escribe por SSE. */
@@ -21,13 +21,13 @@ function settle(jobId: string): void {
 }
 
 test('un job recién creado no está resuelto', () => {
-  const job = createJob('job-nuevo', 'base64', 'image/jpeg', 'meshy')
+  const job = createJob('job-nuevo', 'hash-nuevo', 'base64', 'image/jpeg', 'meshy')
 
   assert.equal(isJobSettled(job), false)
 })
 
 test('isJobSettled exige que los dos sub-jobs terminen', () => {
-  const job = createJob('job-parcial', 'base64', 'image/jpeg', 'meshy')
+  const job = createJob('job-parcial', 'hash-parcial', 'base64', 'image/jpeg', 'meshy')
 
   job.worldLabs = { status: 'done', progress: 100, message: 'ok' }
   assert.equal(isJobSettled(job), false)
@@ -37,7 +37,7 @@ test('isJobSettled exige que los dos sub-jobs terminen', () => {
 })
 
 test('broadcast emite type=done cuando los dos sub-jobs están resueltos', () => {
-  createJob('job-broadcast', 'base64', 'image/jpeg', 'meshy')
+  createJob('job-broadcast', 'hash-broadcast', 'base64', 'image/jpeg', 'meshy')
 
   // con cliente conectado
   const client = fakeRes()
@@ -56,7 +56,7 @@ test('broadcast emite type=done cuando los dos sub-jobs están resueltos', () =>
 })
 
 test('sseEventFor construye el mismo evento que usa el status route', () => {
-  const job = createJob('job-event', 'base64', 'image/jpeg', 'tripo')
+  const job = createJob('job-event', 'hash-event', 'base64', 'image/jpeg', 'tripo')
 
   const running = sseEventFor(job)
   assert.equal(running.type, 'update')
@@ -68,4 +68,21 @@ test('sseEventFor construye el mismo evento que usa el status route', () => {
   const settled = sseEventFor(job)
   assert.equal(settled.type, 'done')
   assert.equal(settled.provider, 'tripo')
+})
+
+test('countActiveJobs cuenta sólo los jobs sin resolver', () => {
+  const antes = countActiveJobs()
+
+  const job = createJob('job-activo', 'hash-activo', 'base64', 'image/jpeg', 'meshy')
+  assert.equal(countActiveJobs(), antes + 1, 'un job recién creado está activo')
+
+  settle('job-activo')
+  assert.equal(countActiveJobs(), antes, 'un job resuelto ya no cuenta como activo')
+})
+
+test('setAssetBuffer acota el número de assets en memoria', () => {
+  for (let i = 0; i < 40; i++) setAssetBuffer(`buf-${i}`, Buffer.from('x'))
+  // el tope es 32: al insertar 40, los 8 primeros han salido
+  assert.equal(getAssetBuffer('buf-0'), undefined, 'el más antiguo se descarta')
+  assert.ok(getAssetBuffer('buf-39'), 'el más reciente se queda')
 })

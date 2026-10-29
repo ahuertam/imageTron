@@ -1,6 +1,7 @@
-import { assetBuffers, broadcast } from './jobStore.js'
-import { saveAsset, saveMetadata } from './outputStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
+import { saveAsset, saveMetadata, modelAssetName } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const ENDPOINT = 'fal-ai/hunyuan3d-v3/image-to-3d'
@@ -43,7 +44,7 @@ export async function startFalJob(job: Job): Promise<void> {
 
   if (!submitResp.ok) {
     const text = await submitResp.text()
-    throw new Error(`FAL submit failed: ${submitResp.status} ${text}`)
+    throw new Error(providerError('FAL', submitResp.status, text))
   }
 
   const submitData = await submitResp.json() as Record<string, unknown>
@@ -85,9 +86,9 @@ export async function startFalJob(job: Job): Promise<void> {
 
       const fileResp = await fetch(glbUrl)
       const buf = Buffer.from(await fileResp.arrayBuffer())
-      assetBuffers.set(`${job.id}:glb`, buf)
-      saveAsset(job.id, 'model.glb', buf)
-      saveMetadata(job, { glb: 'model.glb' })
+      setAssetBuffer(`${job.id}:glb`, buf)
+      saveAsset(job.imageHash, modelAssetName(job.provider), buf)
+      saveMetadata(job, { glb: modelAssetName(job.provider) })
 
       job.model.status = 'done'
       job.model.progress = 100

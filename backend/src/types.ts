@@ -13,6 +13,8 @@ export interface SubJobState {
 
 export interface Job {
   id: string
+  /** Hash de la imagen: carpeta de caché en disco, compartida entre providers */
+  imageHash: string
   createdAt: number
   imageBase64: string
   imageMimeType: string

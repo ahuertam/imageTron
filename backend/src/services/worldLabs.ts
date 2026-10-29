@@ -1,5 +1,6 @@
-import { assetBuffers, broadcast } from './jobStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
 import { saveAsset, saveMetadata } from './outputStore.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const API_BASE = 'https://api.worldlabs.ai/marble/v1'
@@ -43,7 +44,7 @@ export async function startWorldLabsJob(job: Job): Promise<void> {
 
   if (!submitResp.ok) {
     const text = await submitResp.text()
-    throw new Error(`World Labs submit failed: ${submitResp.status} ${text}`)
+    throw new Error(providerError('World Labs', submitResp.status, text))
   }
 
   const submitData = await submitResp.json() as Record<string, unknown>
@@ -85,8 +86,8 @@ export async function startWorldLabsJob(job: Job): Promise<void> {
 
       const fileResp = await fetch(spzUrl)
       const buf = Buffer.from(await fileResp.arrayBuffer())
-      assetBuffers.set(`${job.id}:spz`, buf)
-      saveAsset(job.id, 'environment.spz', buf)
+      setAssetBuffer(`${job.id}:spz`, buf)
+      saveAsset(job.imageHash, 'environment.spz', buf)
       saveMetadata(job, { spz: 'environment.spz' })
 
       job.worldLabs.status = 'done'

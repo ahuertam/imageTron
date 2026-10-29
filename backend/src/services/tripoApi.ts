@@ -1,6 +1,7 @@
-import { assetBuffers, broadcast } from './jobStore.js'
-import { saveAsset, saveMetadata } from './outputStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
+import { saveAsset, saveMetadata, modelAssetName } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const API_BASE = 'https://api.tripo3d.ai/v2/openapi'
@@ -40,7 +41,7 @@ export async function startTripoJob(job: Job): Promise<void> {
 
   if (!uploadResp.ok) {
     const text = await uploadResp.text()
-    throw new Error(`Tripo upload failed: ${uploadResp.status} ${text}`)
+    throw new Error(providerError('Tripo', uploadResp.status, text))
   }
 
   const uploadData = await uploadResp.json() as { code: number; data: { image_token: string } }
@@ -58,7 +59,7 @@ export async function startTripoJob(job: Job): Promise<void> {
 
   if (!taskResp.ok) {
     const text = await taskResp.text()
-    throw new Error(`Tripo task failed: ${taskResp.status} ${text}`)
+    throw new Error(providerError('Tripo', taskResp.status, text))
   }
 
   const taskData = await taskResp.json() as { code: number; data: { task_id: string } }
@@ -98,9 +99,9 @@ export async function startTripoJob(job: Job): Promise<void> {
 
       const fileResp = await fetch(glbUrl)
       const buf = Buffer.from(await fileResp.arrayBuffer())
-      assetBuffers.set(`${job.id}:glb`, buf)
-      saveAsset(job.id, 'model.glb', buf)
-      saveMetadata(job, { glb: 'model.glb' })
+      setAssetBuffer(`${job.id}:glb`, buf)
+      saveAsset(job.imageHash, modelAssetName(job.provider), buf)
+      saveMetadata(job, { glb: modelAssetName(job.provider) })
 
       job.model.status = 'done'
       job.model.progress = 100

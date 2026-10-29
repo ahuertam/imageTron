@@ -11,6 +11,7 @@ import {
   saveAsset,
   saveMetadata,
   saveSourceImage,
+  modelAssetName,
 } from '../src/services/outputStore.js'
 import type { Job, ModelProvider } from '../src/types.js'
 
@@ -22,6 +23,7 @@ after(() => fs.rmSync(tmpRoot, { recursive: true, force: true }))
 
 const makeJob = (id: string, overrides: Partial<Job> = {}): Job => ({
   id,
+  imageHash: id,
   createdAt: 0,
   imageBase64: '',
   imageMimeType: 'image/jpeg',
@@ -131,14 +133,33 @@ test('saveMetadata fusiona assets en vez de sobreescribirlos', () => {
   const job = makeJob('hash-meta')
 
   saveMetadata(job, { spz: 'environment.spz' })
-  saveMetadata(job, { glb: 'model.glb' })
+  saveMetadata(job, { glb: modelAssetName('replicate') })
 
   const metaPath = path.join(tmpRoot, 'hash-meta', 'metadata.json')
   const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
 
   assert.equal(meta.id, 'hash-meta')
-  assert.equal(meta.provider, 'replicate')
-  assert.deepEqual(meta.assets, { spz: 'environment.spz', glb: 'model.glb' })
+  assert.deepEqual(meta.assets, { spz: 'environment.spz', glb: 'model.replicate.glb' })
+  assert.deepEqual(meta.providers, { replicate: { model: 'model.replicate.glb' } })
+})
+
+test('cada provider guarda su propio .glb y metadata los lista por separado', () => {
+  const meshy = makeJob('hash-prov', { provider: 'meshy' })
+  const tripo = makeJob('hash-prov', { provider: 'tripo' })
+
+  saveAsset('hash-prov', modelAssetName('meshy'), Buffer.from('mesh de meshy'))
+  saveAsset('hash-prov', modelAssetName('tripo'), Buffer.from('mesh de tripo'))
+  saveMetadata(meshy, { glb: modelAssetName('meshy') })
+  saveMetadata(tripo, { glb: modelAssetName('tripo') })
+
+  assert.deepEqual(getCachedAsset('hash-prov', modelAssetName('meshy')), Buffer.from('mesh de meshy'))
+  assert.deepEqual(getCachedAsset('hash-prov', modelAssetName('tripo')), Buffer.from('mesh de tripo'))
+
+  const meta = JSON.parse(fs.readFileSync(path.join(tmpRoot, 'hash-prov', 'metadata.json'), 'utf8'))
+  assert.deepEqual(meta.providers, {
+    meshy: { model: 'model.meshy.glb' },
+    tripo: { model: 'model.tripo.glb' },
+  })
 })
 
 test('saveMetadata tolera un metadata.json corrupto', () => {

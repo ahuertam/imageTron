@@ -1,6 +1,8 @@
-import { assetBuffers, broadcast } from './jobStore.js'
-import { saveAsset, saveMetadata } from './outputStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
+import { saveAsset, saveMetadata, modelAssetName } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
+import { safeFetch } from './safeUrl.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const POLL_INTERVAL = 3_000
@@ -28,7 +30,7 @@ export async function startLocalTrellisJob(job: Job, serverUrl: string): Promise
   job.model.progress = 10
   broadcast(job.id)
 
-  const submitResp = await fetch(`${base}/predictions`, {
+  const submitResp = await safeFetch(`${base}/predictions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: dataUri }),
@@ -36,7 +38,7 @@ export async function startLocalTrellisJob(job: Job, serverUrl: string): Promise
 
   if (!submitResp.ok) {
     const text = await submitResp.text()
-    throw new Error(`Local TRELLIS submit failed: ${submitResp.status} ${text}`)
+    throw new Error(providerError('Local TRELLIS', submitResp.status, text))
   }
 
   const prediction = await submitResp.json() as {
@@ -70,7 +72,7 @@ export async function startLocalTrellisJob(job: Job, serverUrl: string): Promise
   while (true) {
     await sleep(POLL_INTERVAL)
 
-    const pollResp = await fetch(`${base}/predictions/${prediction.id}`)
+    const pollResp = await safeFetch(`${base}/predictions/${prediction.id}`)
     if (!pollResp.ok) {
       throw new Error(`Local TRELLIS poll failed: ${pollResp.status}`)
     }
@@ -119,13 +121,13 @@ async function finalize(
   job.model.progress = 90
   broadcast(job.id)
 
-  const fileResp = await fetch(glbUrl)
+  const fileResp = await safeFetch(glbUrl)
   if (!fileResp.ok) throw new Error(`GLB download failed: ${fileResp.status}`)
 
   const buf = Buffer.from(await fileResp.arrayBuffer())
-  assetBuffers.set(`${job.id}:glb`, buf)
-  saveAsset(job.id, 'model.glb', buf)
-  saveMetadata(job, { glb: 'model.glb' })
+  setAssetBuffer(`${job.id}:glb`, buf)
+  saveAsset(job.imageHash, modelAssetName(job.provider), buf)
+  saveMetadata(job, { glb: modelAssetName(job.provider) })
 
   job.model.status = 'done'
   job.model.progress = 100

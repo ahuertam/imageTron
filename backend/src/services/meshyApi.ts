@@ -1,6 +1,7 @@
-import { assetBuffers, broadcast } from './jobStore.js'
-import { saveAsset, saveMetadata } from './outputStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
+import { saveAsset, saveMetadata, modelAssetName } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const API_BASE = 'https://api.meshy.ai/openapi/v2'
@@ -48,7 +49,7 @@ export async function startMeshyJob(job: Job): Promise<void> {
 
   if (!submitResp.ok) {
     const text = await submitResp.text()
-    throw new Error(`Meshy submit failed: ${submitResp.status} ${text}`)
+    throw new Error(providerError('Meshy', submitResp.status, text))
   }
 
   const submitData = await submitResp.json() as { result: string }
@@ -90,9 +91,9 @@ export async function startMeshyJob(job: Job): Promise<void> {
       if (!fileResp.ok) throw new Error(`GLB download failed: ${fileResp.status}`)
 
       const buf = Buffer.from(await fileResp.arrayBuffer())
-      assetBuffers.set(`${job.id}:glb`, buf)
-      saveAsset(job.id, 'model.glb', buf)
-      saveMetadata(job, { glb: 'model.glb' })
+      setAssetBuffer(`${job.id}:glb`, buf)
+      saveAsset(job.imageHash, modelAssetName(job.provider), buf)
+      saveMetadata(job, { glb: modelAssetName(job.provider) })
 
       job.model.status = 'done'
       job.model.progress = 100

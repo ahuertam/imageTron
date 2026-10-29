@@ -1,6 +1,7 @@
-import { assetBuffers, broadcast } from './jobStore.js'
-import { saveAsset, saveMetadata } from './outputStore.js'
+import { setAssetBuffer, broadcast } from './jobStore.js'
+import { saveAsset, saveMetadata, modelAssetName } from './outputStore.js'
 import { resizeIfNeeded } from './imageResize.js'
+import { providerError } from './providerError.js'
 import type { Job } from '../types.js'
 
 const API_URL = 'https://api.stability.ai/v2beta/3d/stable-fast-3d'
@@ -34,7 +35,7 @@ export async function startStabilityJob(job: Job): Promise<void> {
 
   if (!resp.ok) {
     const text = await resp.text()
-    throw new Error(`Stability 3D failed: ${resp.status} ${text}`)
+    throw new Error(providerError('Stability', resp.status, text))
   }
 
   // Stability returns the GLB directly as binary
@@ -43,9 +44,9 @@ export async function startStabilityJob(job: Job): Promise<void> {
   broadcast(job.id)
 
   const buf = Buffer.from(await resp.arrayBuffer())
-  assetBuffers.set(`${job.id}:glb`, buf)
-  saveAsset(job.id, 'model.glb', buf)
-  saveMetadata(job, { glb: 'model.glb' })
+  setAssetBuffer(`${job.id}:glb`, buf)
+  saveAsset(job.imageHash, modelAssetName(job.provider), buf)
+  saveMetadata(job, { glb: modelAssetName(job.provider) })
 
   job.model.status = 'done'
   job.model.progress = 100
