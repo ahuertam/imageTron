@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
-import { createJob, getJob, broadcast, isJobSettled, addSSEClient } from '../src/services/jobStore.js'
+import { createJob, getJob, broadcast, isJobSettled, addSSEClient, sseEventFor } from '../src/services/jobStore.js'
 import type { ServerResponse } from 'node:http'
 
 /** ServerResponse mínimo que captura lo que se escribe por SSE. */
@@ -38,10 +38,6 @@ test('isJobSettled exige que los dos sub-jobs terminen', () => {
 
 test('broadcast emite type=done cuando los dos sub-jobs están resueltos', () => {
   createJob('job-broadcast', 'base64', 'image/jpeg', 'meshy')
-  const res = fakeRes()
-
-  broadcast('job-broadcast')
-  assert.equal(res.written, '', 'sin clientes no se escribe nada')
 
   // con cliente conectado
   const client = fakeRes()
@@ -57,4 +53,19 @@ test('broadcast emite type=done cuando los dos sub-jobs están resueltos', () =>
   const last = JSON.parse(client.written.trim().split('\n\n').pop()!.replace('data: ', ''))
   assert.equal(last.type, 'done')
   assert.equal(client.ended, true, 'cierra la conexión cuando ambos terminan')
+})
+
+test('sseEventFor construye el mismo evento que usa el status route', () => {
+  const job = createJob('job-event', 'base64', 'image/jpeg', 'tripo')
+
+  const running = sseEventFor(job)
+  assert.equal(running.type, 'update')
+  assert.equal(running.provider, 'tripo')
+  assert.equal(running.worldLabs, job.worldLabs)
+  assert.equal(running.model, job.model)
+
+  settle('job-event')
+  const settled = sseEventFor(job)
+  assert.equal(settled.type, 'done')
+  assert.equal(settled.provider, 'tripo')
 })

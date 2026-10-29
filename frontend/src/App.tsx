@@ -19,11 +19,19 @@ export default function App() {
   const [provider, setProvider] = useState<ModelProvider>('tripo')
   const [localTrellisUrl, setLocalTrellisUrl] = useState('http://localhost:8000')
   const { preview, jobId, isUploading, error, upload, reset } = useImageUpload()
-  const { worldLabs, model, done } = useJobSSE(jobId)
+  const { worldLabs, model, provider: jobProvider, done } = useJobSSE(jobId)
 
   const appState = getAppState(isUploading, jobId, done)
   const spzUrl = worldLabs?.assetUrl
   const glbUrl = model?.assetUrl
+
+  // El backend manda el provider con el que realmente corrió el job: si se
+  // reutiliza uno en vuelo, puede no ser el que eligió el usuario.
+  const activeProvider = jobProvider ?? provider
+
+  // Los errores de los sub-jobs tienen que seguir viéndose aunque la escena
+  // 3D esté en pantalla (el ProgressPanel se desmonta al entrar en 'viewing').
+  const jobErrors = [worldLabs?.error, model?.error].filter((e): e is string => Boolean(e))
 
   const handleFile = (file: File, selectedProvider: ModelProvider) => {
     setProvider(selectedProvider)
@@ -70,7 +78,7 @@ export default function App() {
           )}
           {appState === 'processing' && (
             <div className="w-full flex flex-col items-center gap-4">
-              <ProgressPanel worldLabs={worldLabs} model={model} provider={provider} preview={preview} />
+              <ProgressPanel worldLabs={worldLabs} model={model} provider={activeProvider} preview={preview} />
               {(spzUrl ?? glbUrl) && (
                 <div className="w-full max-w-md h-56 rounded-2xl overflow-hidden border border-gray-800">
                   <Viewer3D spzUrl={spzUrl} glbUrl={glbUrl} />
@@ -84,6 +92,12 @@ export default function App() {
       {error && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-900/80 border border-red-700 text-red-200 text-sm px-4 py-2 rounded-full">
           {error}
+        </div>
+      )}
+
+      {jobErrors.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-900/80 border border-red-700 text-red-200 text-sm px-4 py-2 rounded-full">
+          {jobErrors.join(' · ')}
         </div>
       )}
     </div>

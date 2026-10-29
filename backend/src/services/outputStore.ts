@@ -6,7 +6,7 @@ import type { Job } from '../types.js'
 // ponytail: OUTPUTS_DIR se resuelve en cada llamada (no al importar) para que los tests
 // puedan aislar la caché en un tmpdir. Upgrading path: mover a config por entorno si
 // aparecen más de un consumidor con roots distintos.
-const outputsDir = (): string => process.env.OUTPUTS_DIR ?? path.resolve('outputs')
+const outputsDir = (): string => process.env.OUTPUTS_DIR || path.resolve('outputs')
 
 export function hashImage(buffer: Buffer): string {
   return crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 16)

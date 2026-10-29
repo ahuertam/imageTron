@@ -39,17 +39,23 @@ export function isJobSettled(job: Job): boolean {
   return isSettled(job.worldLabs) && isSettled(job.model)
 }
 
+/** Único sitio donde se construye el evento SSE: broadcast() y la ruta de status
+ *  deben contar exactamente lo mismo (si no, el cliente se queda colgado). */
+export function sseEventFor(job: Job): SSEEvent {
+  return {
+    type: isJobSettled(job) ? 'done' : 'update',
+    provider: job.provider,
+    worldLabs: job.worldLabs,
+    model: job.model,
+  }
+}
+
 export function broadcast(jobId: string): void {
   const job = jobs.get(jobId)
   if (!job) return
 
   const bothSettled = isJobSettled(job)
-  const event: SSEEvent = {
-    type: bothSettled ? 'done' : 'update',
-    provider: job.provider,
-    worldLabs: job.worldLabs,
-    model: job.model,
-  }
+  const event = sseEventFor(job)
   const line = `data: ${JSON.stringify(event)}\n\n`
 
   const clients = sseClients.get(jobId) ?? new Set()
