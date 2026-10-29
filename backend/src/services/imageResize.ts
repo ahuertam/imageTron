@@ -4,12 +4,17 @@ import sharp from 'sharp'
 // to keep payloads small and generation fast.
 const MAX_PIXELS = 1024 * 1024  // 1 MP — safe for all providers
 
+// Tope de entrada para sharp. Por defecto sharp acepta 268 MP, así que un PNG
+// de 20 MB puede pedir varios GB de RAM al decodificar. Con el límite, sharp
+// rechaza la imagen antes de decodificarla.
+const LIMIT_INPUT_PIXELS = 16 * 1024 * 1024  // 16 MP
+
 export async function resizeIfNeeded(
   base64: string,
   mimeType: string,
 ): Promise<{ base64: string; mimeType: string }> {
   const inputBuf = Buffer.from(base64, 'base64')
-  const meta = await sharp(inputBuf).metadata()
+  const meta = await sharp(inputBuf, { limitInputPixels: LIMIT_INPUT_PIXELS }).metadata()
   const w = meta.width ?? 0
   const h = meta.height ?? 0
 
@@ -18,7 +23,7 @@ export async function resizeIfNeeded(
   }
 
   // Fit inside 1024×1024, preserving aspect ratio
-  const outBuf = await sharp(inputBuf)
+  const outBuf = await sharp(inputBuf, { limitInputPixels: LIMIT_INPUT_PIXELS })
     .resize({ width: 1024, height: 1024, fit: 'inside', withoutEnlargement: true })
     .jpeg({ quality: 90 })
     .toBuffer()
