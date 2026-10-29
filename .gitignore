@@ -7,3 +7,4 @@ backend/.env.*
 !backend/.env.example
 *.local
 backend/outputs/
+.DS_Store

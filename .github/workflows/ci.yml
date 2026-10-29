@@ -2,12 +2,23 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+# Un push a una branch con PR abierto dispara los dos eventos: con este grupo
+# el segundo cancela al primero en vez de duplicar los runners.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   backend:
     name: Backend (build + test)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -25,6 +36,7 @@ jobs:
   frontend:
     name: Frontend (build)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
